@@ -1,0 +1,9 @@
+"ordem","janela","nome","lon_centro","lat_centro","faixa_lat","motivo","lon_min","lat_min","lon_max","lat_max"
+1,"15_26","Foz do Amazonas",-47.85,0.49,"tropical","inclusão fixa; não passa no filtro (sem série temporal): só teste estático",-50.3170028668909,-1.56950135671348,-45.1296829837063,2.3546104770907
+2,"3_37","Mar do Norte / Skagerrak",9.21,55.86,"temperada","maior pontuação (9,80)",6.74351584813999,52.3796755361204,11.9308357313246,59.307917203829
+3,"1_38","Svalbard / Barents",14.39,74.4,"polar","faixa polar; pontuação 8,49",11.9308357313246,68.0738770921137,17.1181556145092,84.4397902868291
+4,"24_69","Norte da Nova Zelândia",175.2,-37.35,"temperada","hemisfério sul; pontuação 9,04",172.737752110048,-39.9762399586321,177.925071993233,-35.0530815104426
+5,"8_18","Pluma do Mississippi",-89.35,29.17,"temperada","região análoga à Foz (pluma fluvial); pontuação 8,63",-91.815561932368,26.8410943439863,-86.6282420491833,31.317179102334
+6,"6_12","Ressurgência da Califórnia",-120.48,38.59,"temperada","região análoga (ressurgência); pontuação 7,69",-122.939481231476,36.0129469316044,-117.752161348291,41.002162150962
+7,"9_14","Golfo da Califórnia",-110.1,24.78,"temperada","pontuação 7,57",-112.564841465106,22.5322561983514,-107.377521581922,26.8410943439863
+8,"5_22","Golfo do Maine / Fundy",-68.6,43.77,"temperada","pontuação 9,17",-71.0662823996294,41.002162150962,-65.8789625164448,46.3961325893626

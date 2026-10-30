@@ -8,8 +8,8 @@ login_cop.txt
 bruto/
 camadas/
 intermediario/
-entrada/
 saida/
+# entrada/ (curated lookup tables approved at decision Gates) is versioned
 
 # --- large or derived binary files (output data are released through data/ only) ---
 *.parquet

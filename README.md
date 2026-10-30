@@ -21,6 +21,7 @@ world_marine_habitats/
 ├── CITATION.cff            how to cite
 ├── .Renviron.example       environment variables used by the scripts
 ├── scripts/                complete R pipeline, numbered in run order
+├── entrada/                curated lookup tables approved at decision Gates (inputs to the scripts)
 ├── docs/
 │   ├── workflow.md         what each script does, inputs and outputs, by phase
 │   ├── decision_log.md     every methodological decision (Gates 1–9), rationale and key results
@@ -62,7 +63,7 @@ Raw and curated input data are **not** redistributed here; the scripts download 
 
 Requirements: R ≥ 4.5 with the packages listed in [`docs/environment.md`](docs/environment.md); Rtools (Windows) to build `gradientForest` from source (`scripts/80b_gradientforest.R`); about 150 GB of free disk (the OBIS snapshot alone is about 90 GB); 64 GB RAM recommended. Heavy steps run in parallel on the CPU (`parallel`, PSOCK clusters).
 
-1. Copy `.Renviron.example` to `.Renviron` (or set the variables in your session) and point `WMH_ROOT` to a working folder. The scripts create `bruto/` (raw), `camadas/` (layers), `intermediario/` (intermediate), `entrada/` (curated lookup tables) and `saida/` (outputs) inside it.
+1. Copy `.Renviron.example` to `.Renviron` (or set the variables in your session) and point `WMH_ROOT` to a working folder. The scripts create `bruto/` (raw), `camadas/` (layers), `intermediario/` (intermediate), `entrada/` (curated lookup tables) and `saida/` (outputs) inside it. Copy the repository's `entrada/` folder into it.
 2. Copernicus Marine downloads need your own account; credentials are read from a local file outside the repository (see `scripts/funcoes_copernicus.R`). Never commit credentials.
 3. Run the scripts in numeric order (`Rscript scripts/00_ambiente.R`, …). Some scripts take arguments, for example `83_etapa2.R nivel=1` or `82_etapa1_n2.R bloco=100 unidade=genero`; see the header of each script and [`docs/workflow.md`](docs/workflow.md).
 4. Steps that stopped at a decision Gate were run with the options recorded in [`docs/decision_log.md`](docs/decision_log.md).
