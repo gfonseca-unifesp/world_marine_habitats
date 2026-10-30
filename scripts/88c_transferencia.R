@@ -85,8 +85,8 @@ testes <- bind_rows(lapply(seq_len(nrow(rob)), function(k) {
   d <- data.frame(grupo = sub(" \\((bentos|pelagico)\\)$", "", g), comp = sub("^.* \\((bentos|pelagico)\\)$", "\\1", g))
   d |> inner_join(amp |> filter(preditor == rob$preditor[k]), by = c("comp", "grupo")) |> inner_join(locais, by = c("comp", "grupo", "bacia")) |>
     mutate(id = k, preditor = rob$preditor[k], limiar = rob$limiar[k], testavel = min_b <= limiar - 0.05 * amp & max_b >= limiar + 0.05 * amp,
-      confirmado = testavel & mapply(function(cp, gg, b, a) { l <- ll[ll$comp == cp & ll$grupo == gg & ll$bacia == b & ll$preditor == rob$preditor[k], ]
-        nrow(l) > 0 && any(abs(l$limiar - rob$limiar[k]) <= 0.10 * a) }, comp, grupo, bacia, amp))
+      confirmado = testavel & vapply(seq_along(bacia), function(i) { l <- ll[ll$comp == comp[i] & ll$grupo == grupo[i] & ll$bacia == bacia[i] & ll$preditor == rob$preditor[k], ]
+        nrow(l) > 0 && any(abs(l$limiar - rob$limiar[k]) <= 0.10 * amp[i]) }, logical(1)))
 }))
 write.csv(testes, file.path(raiz, "saida/etapa3_n1_transf_testes.csv"), row.names = FALSE)
 cls <- testes |> group_by(id) |> summarise(bacias_testaveis = n_distinct(bacia[testavel]), bacias_confirmadas = n_distinct(bacia[confirmado]),
