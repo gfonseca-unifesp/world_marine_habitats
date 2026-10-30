@@ -1,0 +1,5 @@
+# Copy to .Renviron (not committed) and adjust.
+# Working folder where the scripts read and write bruto/, camadas/, intermediario/, entrada/ and saida/.
+WMH_ROOT=C:/path/to/working/folder
+# Local text file with the Copernicus Marine user (line 1) and password (line 2); keep it outside the repository.
+WMH_COPERNICUS_LOGIN=C:/path/outside/repo/copernicus_login.txt

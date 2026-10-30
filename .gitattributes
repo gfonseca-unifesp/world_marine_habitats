@@ -1,0 +1,8 @@
+* text=auto eol=lf
+*.R text eol=lf
+*.md text eol=lf
+*.csv text eol=lf
+*.ps1 text eol=crlf
+*.tif binary
+*.png binary
+*.parquet binary

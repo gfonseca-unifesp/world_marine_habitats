@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this code or data, please cite it as below, together with the associated article."
+title: "World Marine Habitats: testing and deriving global marine habitat classifications with OBIS fauna and GLORYS12 gradients"
+type: software
+# TODO: complete the author list (family-names, given-names, affiliation, orcid) before the first release
+authors:
+  - name: "The world_marine_habitats authors"
+repository-code: "https://github.com/gfonseca-unifesp/world_marine_habitats"
+license: MIT
+keywords:
+  - marine habitats
+  - habitat classification
+  - OBIS
+  - Ecological Benthic Units
+  - Ecological Marine Units
+  - Gradient Forest
+  - GLORYS12
+  - PERMANOVA
+  - conservation planning
+# preferred-citation: add the article once published (type: article, doi, journal, year)

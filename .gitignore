@@ -1,0 +1,38 @@
+# --- credentials: never commit ---
+login_cop.txt
+*credentials*
+*.pem
+.Renviron
+
+# --- working folders created by the scripts (raw, layers, intermediate and output data) ---
+bruto/
+camadas/
+intermediario/
+entrada/
+saida/
+
+# --- large or derived binary files (output data are released through data/ only) ---
+*.parquet
+*.rds
+*.nc
+*.tif
+!data/**/*.tif
+*.zip
+
+# --- reports, figures and text (not part of the repository) ---
+*.html
+*.pdf
+*.docx
+*.png
+!docs/**/*.png
+
+# --- R / OS / editors ---
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+Thumbs.db
+.DS_Store
+desktop.ini
+.vscode/
+.idea/
