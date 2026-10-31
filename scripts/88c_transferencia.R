@@ -29,6 +29,7 @@ ajusta <- function(j) {
   na_b <- r$meta$bacia %in% j$bacia; i <- if (j$tipo == "local") which(na_b) else which(!na_b)
   X <- r$F[i, , drop = FALSE]; Ei <- E[i, , drop = FALSE]; n <- length(i)
   Ei <- Ei[, !(grepl("^bac_", names(Ei)) & (j$tipo == "local" | colSums(Ei) == 0)), drop = FALSE]   # in the local fit the basin is constant
+  Ei <- Ei[, vapply(Ei, function(x) sd(x) > 0, TRUE), drop = FALSE]   # gradientForest rejects constant predictors (e.g. sea ice in a basin without ice)
   prev <- colSums(X > 0); X <- X[, prev >= 10 & prev <= 0.95 * n, drop = FALSE]
   out <- list(comp = r$comp, grupo = r$grupo, bacia = j$bacia, tipo = j$tipo, unidades = n, taxons = ncol(X), r2 = NA, ajustados = 0, rho = NA, lim = NULL)
   if (ncol(X) >= 3) {
