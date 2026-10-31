@@ -42,6 +42,7 @@ ajusta <- function(j) {
       cur <- lapply(vs, function(v) tryCatch(cumimp(gf, v, type = "Overall"), error = function(e) NULL)); names(cur) <- vs
       cur <- cur[!vapply(cur, function(c) is.null(c) || length(c$x) < 5, TRUE)]
       out$lim <- do.call(rbind, lapply(names(cur), function(v) { l <- limiares_curva(cur[[v]]$x, cur[[v]]$y); if (!is.null(l)) cbind(preditor = v, l) }))
+      if (j$tipo == "local") out$curvas <- do.call(rbind, lapply(names(cur), function(v) data.frame(preditor = v, x = cur[[v]]$x, y = cur[[v]]$y)))   # for 92b (enrichment by basin)
       ib <- which(na_b); if (length(ib) > 800) { set.seed(3); ib <- sort(sample(ib, 800)) }
       if (length(cur)) {
         T <- sapply(names(cur), function(v) approx(cur[[v]]$x, cur[[v]]$y, E[[v]][ib], rule = 2, ties = mean)$y)
@@ -73,6 +74,8 @@ ajw <- aj |> select(comp, grupo, bacia, tipo, unidades, ajustados, r2, rho) |> t
 write.csv(ajw, file.path(raiz, "saida/etapa3_n1_transf_ajustes.csv"), row.names = FALSE)
 ll <- bind_rows(lapply(rs, function(o) if (o$tipo == "local" && !is.null(o$lim)) cbind(comp = o$comp, grupo = o$grupo, bacia = o$bacia, o$lim)))
 write.csv(ll, file.path(raiz, "saida/etapa3_n1_transf_limiares_locais.csv"), row.names = FALSE)
+write.csv(bind_rows(lapply(rs, function(o) if (!is.null(o$curvas)) cbind(comp = o$comp, grupo = o$grupo, bacia = o$bacia, o$curvas))),
+  file.path(raiz, "saida/etapa3_n1_transf_curvas_locais.csv"), row.names = FALSE)
 
 # ---- robust thresholds x basins ----
 rob <- read.csv(file.path(raiz, "saida/etapa3_n1_limiares_robustos.csv")); rob$id <- seq_len(nrow(rob))
