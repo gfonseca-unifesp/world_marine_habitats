@@ -108,7 +108,9 @@ Scripts are numbered in run order. Every script reads and writes inside the work
 | `92b_enriquecimento.R` | L2b tolerance-free test: does the published interval concentrate more faunal turnover on the GF curve than random intervals of the same width? Gate 10 use and weight; stratum diagnostic of the pelagic z |
 | `92c_redefinicao.R` | L3 undetected published depth / bottom-temperature thresholds tested as new class boundaries with the fauna inside the study box |
 | `92d_afericao.R` | L4 in-situ vs GLORYS depth in the study boxes, published values moved to the GLORYS scale, L2 and L2b recomputed; variables in the literature missing from the model |
-| `92e_figura_limiares.R` | L5 model vs published thresholds per variable and basin |
+| `92e_figura_limiares.R` | L5 model vs published thresholds per variable and study, with threshold ids (key table in `saida/figura_limiares_tabela.csv`) |
+
+`94_comparacao_mapas.R` draws, in one common style, the original classification, the classification tested by the fauna, the new habitats and the united map, for the benthos and for the pelagic.
 
 The internal HTML validation report (`90_relatorio.R`) is not part of this repository.
 
