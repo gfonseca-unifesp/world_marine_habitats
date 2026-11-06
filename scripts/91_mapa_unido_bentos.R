@@ -18,7 +18,9 @@
 #    untested = hatched), evidence inherited from level III (HB validated by fauna or not), protected, shelf seasonality;
 #  7 acceptance: omega2 of the base classes >= that of the best component (HB, EBU region) on the same units, per group, with
 #    all data and with equal effort (Gate 9b item 4); all depth bands and EBU groups represented;
-#  8 the pelagic goes in a separate layer (after level 2, Gate 8 item 3).
+#  8 the pelagic goes in a separate layer (91b_mapa_unido_pelagico.R);
+#  9 external evidence (Gate 10, L3): splits decided in 92c_redefinicao.R (saida/limiares_candidatos_redefinicao.csv) are applied
+#    inside the study box; new classes carry evidencia_externa, referencia and classe_mae, and are cross-hatched on the map.
 # Outputs: saida/mapa_unido_bentos_{classes,pares,avaliacao,representacao,absorvidas,hierarquia,niveis}.csv,
 #          saida/mapa_unido_bentos_25km.tif (bands: base, nivel3, tolerance levels), saida/mapa_unido_bentos_{25km,nivel3}.png
 suppressPackageStartupMessages({library(dplyr); library(terra); library(arrow); library(parallel)})
@@ -149,6 +151,33 @@ for (k in seq_along(h_niv)) { g <- cutree(arv_c, h = h_niv[k]); niveis[[sprintf(
 hier <- data.frame(passo = seq_len(nrow(arv_c$merge)), a = arv_c$merge[, 1], b = arv_c$merge[, 2], altura = arv_c$height) |> filter(altura < NUNCA)
 cat("classes por nivel de tolerancia:", paste(names(niveis)[-1], sapply(niveis[-1], function(x) length(unique(x))), collapse = "; "), "\n")
 
+# ---------------- 9 external evidence (Gate 10; L3, 92c_redefinicao.R) ----------------
+# inside the study box, the part of a base class of the tested level-III context that lies beyond the published value becomes a
+# new class "<parent>-<id>" (if it has >= AREA_MIN cells and the parent keeps cells on the other side); it never merges with the
+# parent at any tolerance level (its tolerance labels get the same suffix); evidence "distinta pela fauna" or "separada pela literatura"
+fin$evidencia_externa <- NA_character_; fin$referencia <- NA_character_; fin$classe_mae <- NA_character_
+niveis <- niveis[match(fin$codigo, niveis$codigo), ]
+fr <- file.path(raiz, "saida/limiares_candidatos_redefinicao.csv")
+red <- if (file.exists(fr)) read.csv(fr, encoding = "UTF-8") |> filter(decisao == "partir") else NULL
+if (!is.null(red) && nrow(red)) {
+  ll <- project(xyFromCell(g25, C$cel), from = crs(g25), to = "EPSG:4326")
+  for (k in seq_len(nrow(red))) { rr <- red[k, ]; e <- ext(vect(rr$caixa_wkt, crs = "EPSG:4326"))
+    dentro <- C$nivel3 == rr$nivel3 & ll[, 1] >= e$xmin & ll[, 1] <= e$xmax & ll[, 2] >= e$ymin & ll[, 2] <= e$ymax
+    alem <- C[[rr$variavel]] >= rr$valor
+    for (pai in unique(C$codigo[dentro & alem])) { i <- which(dentro & alem & C$codigo == pai)
+      if (length(i) < AREA_MIN || !any(dentro & !alem & C$codigo == pai)) next
+      novo <- paste(pai, rr$id, sep = "-"); C$codigo[i] <- novo; lin <- fin[fin$codigo == pai, ]
+      lin$codigo <- novo; lin$classe_mae <- pai; lin$evidencia_externa <- rr$evidencia; lin$referencia <- rr$referencia
+      lin$evidencia <- rr$evidencia; lin$standby <- FALSE; fin <- bind_rows(fin, lin)
+      nl <- niveis[niveis$codigo == pai, ]; nl$codigo <- novo; nl[-1] <- lapply(nl[-1], function(x) paste(x, rr$id, sep = "-")); niveis <- bind_rows(niveis, nl) } }
+  aj <- C |> group_by(codigo) |> summarise(celulas = n(), prof = median(prof), tfundo_amp = median(tfundo_amp), .groups = "drop")
+  fin <- fin |> select(-celulas, -prof, -tfundo_amp) |> left_join(aj, by = "codigo") |> filter(!is.na(celulas))
+  niveis <- niveis[match(fin$codigo, niveis$codigo), ]
+  for (nm in names(niveis)[-1]) { lab <- niveis[[nm]]; falta <- !lab %in% niveis$codigo   # suffixed labels -> largest child carrying them
+    if (any(falta)) { rp <- tapply(niveis$codigo[falta], lab[falta], function(x) x[which.max(fin$celulas[match(x, fin$codigo)])]); niveis[[nm]][falta] <- unname(rp[lab[falta]]) } }
+  cat("criterio 9: classes novas pela literatura:", sum(!is.na(fin$classe_mae)), "(", paste(names(table(fin$evidencia_externa)), table(fin$evidencia_externa), collapse = "; "), ")\n")
+}
+
 # ---------------- 7 acceptance (all data and equal effort) ----------------
 avalia <- function(pp, chave, cls) {   # cls: classifications aligned with chave (candidate codes)
   suppressPackageStartupMessages({library(vegan); library(dplyr)}); source(file.path(raiz, "scripts/funcoes_permanova.R"))
@@ -189,15 +218,16 @@ names(st) <- c("base", "nivel3", names(niveis)[-1]); writeRaster(st, file.path(r
 # base map: too many classes for a legend per class; the legend shows the level-III hues
 hbs <- unique(chave3[grepl("^HB", chave3)]); hs <- c(hbs[order(as.integer(sub("HB", "", hbs)))], intersect(c("C", "D"), chave3))
 rotulo3 <- ifelse(hs %in% names(NOME_PROT), NOME_PROT[hs], hs)
-rb <- st[["base"]]; vb <- values(rb)[, 1]; rc <- rowColFromCell(rb, seq_len(ncell(rb))); k <- which(!is.na(vb)); k <- k[fin$standby[vb[k]] & (rc[k, 1] + rc[k, 2]) %% 7 < 2]
+rb <- st[["base"]]; vb <- values(rb)[, 1]; rc <- rowColFromCell(rb, seq_len(ncell(rb))); k0 <- which(!is.na(vb)); k <- k0[fin$standby[vb[k0]] & (rc[k0, 1] + rc[k0, 2]) %% 7 < 2]
+lit <- fin$evidencia == "separada pela literatura"; k <- c(k, k0[lit[vb[k0]] & ((rc[k0, 1] + rc[k0, 2]) %% 7 < 2 | (rc[k0, 1] - rc[k0, 2]) %% 7 < 2)])   # cross-hatched
 h <- rast(rb); hv <- rep(NA, ncell(rb)); hv[k] <- 1; h[] <- hv
 png(file.path(raiz, "saida/mapa_unido_bentos_25km.png"), 2000, 1160, res = 150, bg = "white"); layout(matrix(1:2), heights = c(1000, 160)); par(mar = c(0.5, 1, 2, 1))
 plot(rb, col = fin$cor, breaks = c(0.5, seq_len(nrow(fin)) + 0.5), legend = FALSE, axes = FALSE, box = FALSE, maxcell = ncell(rb),
      main = sprintf("Mapa unido do bentos, nível base (erro de fusão ≤ %.0f%%): %d classes", 100 * h_base, nrow(fin)))
 if (length(k)) plot(h, col = COR_ACH, breaks = c(0.5, 1.5), legend = FALSE, axes = FALSE, box = FALSE, add = TRUE, maxcell = ncell(rb))
 par(mar = c(0, 1, 0, 1)); plot.new()
-legend("top", legend = c(rotulo3, "achurado = sem evidência da fauna"), fill = c(corN3[hs], COR_ACH), density = c(rep(NA, length(hs)), 40), ncol = 8, cex = 0.7, bty = "n",
-       title = "matiz = nível III (habitat novo ou feição protegida); tons = classes do nível base")
+legend("top", legend = rotulo3, fill = corN3[hs], ncol = 11, cex = 0.7, bty = "n",
+       title = "matiz = nível III (habitat novo ou feição protegida); tons = classes do nível base; achurado = sem evidência da fauna; cruzado = separada pela literatura")
 dev.off()
 cor3 <- vapply(n3, function(x) corN3[sub(".*\\|", "", x)], ""); val3 <- fin$evidencia_nivel3[match(n3, fin$nivel3)] != "HB validado pela fauna" & !grepl("\\|[CD]$", n3)
 mapa_classes(st[["nivel3"]], cor3, val3, fin$nivel3_rotulo[match(n3, fin$nivel3)], "Mapa unido do bentos, nível III (faixa × habitat novo; feições protegidas)",

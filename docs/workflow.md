@@ -91,10 +91,27 @@ Scripts are numbered in run order. Every script reads and writes inside the work
 
 | Script | Purpose |
 |---|---|
-| `91_mapa_unido_bentos.R` | Final benthic map: depth band × new habitat × EBU region candidates, merged only on fauna equivalence; protected features (seamounts, ridges); minimum area; evidence attributes; acceptance test |
+| `91_mapa_unido_bentos.R` | Final benthic map: depth band × new habitat × EBU region candidates on one tree whose dissimilarity is a false-merge rate (fauna-equivalent = 0; distinct, other band or other protected feature = never; untested = share of fauna-distinct pairs at a smaller GF distance); base cut at the 25th percentile of equivalent pairs and nested tolerance levels; protected features (seamounts, ridges); minimum area; evidence attributes; acceptance test; criterion 9 applies the literature splits of `92c` |
+| `91b_mapa_unido_pelagico.R` | Final pelagic map with the same rules on the dynamic grid (cell × month × depth): vertical zone × pelagic habitat (HP, updated with level 2) × EMU class; fauna of levels 1 and 2; persistence (resident / seasonal / occasional) |
+
+### Pelagic at level 2
+
+| Script | Purpose |
+|---|---|
+| `93_pelagico_n2.R` | Level-2 pelagic units (cell × quarter × depth layer), Gradient Forest per ecological group, thresholds vs level 1, level-1 pelagic clusters tested with the level-2 fauna |
+
+### Gate 10: published thresholds
+
+| Script | Purpose |
+|---|---|
+| `92_limiares_publicados.R` | L1 standardise the published-threshold base (group, predictor, study box, basin, independence heuristic, sampling-stratum flag); L2 compare with the model robust and basin thresholds |
+| `92b_enriquecimento.R` | L2b tolerance-free test: does the published interval concentrate more faunal turnover on the GF curve than random intervals of the same width? Gate 10 use and weight; stratum diagnostic of the pelagic z |
+| `92c_redefinicao.R` | L3 undetected published depth / bottom-temperature thresholds tested as new class boundaries with the fauna inside the study box |
+| `92d_afericao.R` | L4 in-situ vs GLORYS depth in the study boxes, published values moved to the GLORYS scale, L2 and L2b recomputed; variables in the literature missing from the model |
+| `92e_figura_limiares.R` | L5 model vs published thresholds per variable and basin |
 
 The internal HTML validation report (`90_relatorio.R`) is not part of this repository.
 
 ## Stage 4 (planned)
 
-Monthly dynamic pelagic maps, validation with blocks and years left out, area of applicability, and the united pelagic map after the level-2 Gradient Forest.
+Monthly dynamic pelagic maps, validation with blocks and years left out, area of applicability, and a wider level-1 pelagic set (small pelagic fish, micronekton, gelatinous plankton).
