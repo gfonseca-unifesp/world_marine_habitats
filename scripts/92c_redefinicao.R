@@ -3,6 +3,8 @@
 #  candidates: benthic rows of saida/limiares_enriquecimento.csv with variable prof or tfundo_med, use validacao or apoio (relato
 #    types such as richness do not split habitats), situacao nao_detectado and enrichment ratio >= 1 in at least one group;
 #    split value = the published value (midpoint of the published interval);
+#    scale (PI decision, 06/11/2026): where 92d_afericao.R converted both ends of the interval to the GLORYS scale, the situation, the
+#    enrichment and the split value are those of the GLORYS scale, because the map is cut on GLORYS depth; otherwise, the published ones;
 #  per candidate and per level-III context inside the study box (depth band x HB, or depth band x protected feature, as in
 #    91_mapa_unido_bentos.R): fauna units shallower (colder) vs. deeper (warmer) than the value, pares_classes() per taxonomic
 #    group (omega2 >= 0.01 and power >= 0.8), consensus as in 91;
@@ -19,14 +21,18 @@ faixa <- function(prof) findInterval(prof, c(200, 2000), left.open = TRUE) + 1
 g25 <- ease2_grade("25km"); M <- lapply(1:12, function(m) rast(file.path(raiz, sprintf("camadas/glorys/mes/glorys_%02d_25km.tif", m))))
 
 # ---------------- candidates ----------------
-en <- read.csv(file.path(raiz, "saida/limiares_enriquecimento.csv"), encoding = "UTF-8")
+af <- read.csv(file.path(raiz, "saida/limiares_afericao.csv"), encoding = "UTF-8") |> filter(!is.na(limiar_min_glorys), !is.na(limiar_max_glorys)) |> select(id, limiar_min_glorys, limiar_max_glorys)
+ag <- read.csv(file.path(raiz, "saida/limiares_afericao_grupos.csv"), encoding = "UTF-8") |> select(id, grupo_projeto, situacao_glorys, razao_glorys)
+en <- read.csv(file.path(raiz, "saida/limiares_enriquecimento.csv"), encoding = "UTF-8") |> left_join(ag, by = c("id", "grupo_projeto")) |>
+  mutate(glorys = id %in% af$id, situacao = ifelse(glorys, situacao_glorys, situacao), razao = ifelse(glorys, razao_glorys, razao))
 lp <- read.csv(file.path(raiz, "saida/limiares_publicados_padronizados.csv"), encoding = "UTF-8") |> select(id, referencia, regiao, caixa_wkt)
 cands <- en |> filter(compartimento == "bentos", variavel_modelo %in% VARS_L3, uso %in% c("validacao", "apoio")) |> group_by(id) |>
   summarise(variavel = first(variavel_modelo), limiar_min = first(limiar_min), limiar_max = first(limiar_max), bacia = first(bacia), uso = first(uso),
     grupos_nao_detectado = sum(situacao == "nao_detectado"), razao_max_nao_detectado = suppressWarnings(max(razao[situacao == "nao_detectado"], na.rm = TRUE)), .groups = "drop") |>
   filter(grupos_nao_detectado > 0, is.finite(razao_max_nao_detectado), razao_max_nao_detectado >= 1) |>
-  left_join(lp, by = "id") |> filter(!is.na(caixa_wkt), caixa_wkt != "") |> mutate(valor = (limiar_min + limiar_max) / 2)
-cat("candidatos L3:", nrow(cands), "\n"); print(cands |> select(id, referencia, variavel, valor, uso, razao_max_nao_detectado) |> as.data.frame())
+  left_join(lp, by = "id") |> filter(!is.na(caixa_wkt), caixa_wkt != "") |> left_join(af, by = "id") |>
+  mutate(escala_valor = ifelse(is.na(limiar_min_glorys), "publicada", "GLORYS"), valor = (coalesce(limiar_min_glorys, limiar_min) + coalesce(limiar_max_glorys, limiar_max)) / 2)
+cat("candidatos L3:", nrow(cands), "\n"); print(cands |> select(id, referencia, variavel, valor, escala_valor, uso, razao_max_nao_detectado) |> as.data.frame())
 
 # ---------------- cells: level-III context, value, box ----------------
 e25 <- read_parquet(file.path(raiz, "camadas/ebu/ebu_celula_25km.parquet"))
@@ -74,10 +80,10 @@ red <- jobs |> mutate(id = cands$id[k]) |> left_join(cons, by = c("id", "nivel3"
       grupos == 1 & distintos == 0 ~ "fraco", TRUE ~ "depende do grupo"),
     decisao = case_when(pmin(celulas_raso, celulas_fundo) < AREA_MIN ~ "manter (área mínima)", consenso == "equivalente" ~ "manter (conflito com a literatura)", TRUE ~ "partir"),
     evidencia = case_when(decisao != "partir" ~ NA_character_, consenso == "distinto" ~ "distinta pela fauna", TRUE ~ "separada pela literatura")) |>
-  left_join(cands |> select(id, referencia, regiao, variavel, valor, limiar_min, limiar_max, caixa_wkt, uso, razao_max_nao_detectado), by = "id") |>
-  select(id, referencia, regiao, variavel, valor, limiar_min, limiar_max, uso, razao_max_nao_detectado, nivel3, celulas_raso, celulas_fundo,
+  left_join(cands |> select(id, referencia, regiao, variavel, valor, escala_valor, limiar_min, limiar_max, caixa_wkt, uso, razao_max_nao_detectado), by = "id") |>
+  select(id, referencia, regiao, variavel, valor, escala_valor, limiar_min, limiar_max, uso, razao_max_nao_detectado, nivel3, celulas_raso, celulas_fundo,
     grupos, distintos, grupos_nomes, omega2_med, consenso, decisao, evidencia, caixa_wkt)
 write.csv(red, file.path(raiz, "saida/limiares_candidatos_redefinicao.csv"), row.names = FALSE, fileEncoding = "UTF-8")
 if (nrow(tes)) write.csv(tes, file.path(raiz, "saida/limiares_redefinicao_testes.csv"), row.names = FALSE, fileEncoding = "UTF-8")
-options(width = 220); print(red |> select(id, valor, nivel3, celulas_raso, celulas_fundo, grupos, distintos, consenso, decisao) |> as.data.frame())
+options(width = 220); print(red |> select(id, valor, escala_valor, nivel3, celulas_raso, celulas_fundo, grupos, distintos, consenso, decisao) |> as.data.frame())
 print(table(red$decisao, red$evidencia, useNA = "ifany")); cat(format(Sys.time()), "FIM\n")

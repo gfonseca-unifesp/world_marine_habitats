@@ -28,6 +28,7 @@ Scripts are numbered in run order. Every script reads and writes inside the work
 |---|---|
 | `21_extrair_nivel1.R` | Extract all records of the level-1 focal taxa from the OBIS snapshot (no filtering yet) |
 | `22_perfil_nivel1.R` | Profile of the extraction: field completeness, dates, coordinate precision, flags, basisOfRecord, licences, dataset dominance |
+| `21b_extrair_nivel1_b.R` | Option B: extraction of the small pelagic fish and micronekton families, apart from the approved level 1 |
 | `23_taxa.R` | Taxon table from the WoRMS classification shipped with OBIS |
 | `24_conjuntos.R` | Dataset metadata, type, scope and standardised licence (OBIS API) |
 | `31_sondagem.R` | Scoping: purity, effort, testable classes and boundary pairs at 25, 50 and 100 km |
@@ -108,6 +109,7 @@ Scripts are numbered in run order. Every script reads and writes inside the work
 | `92b_enriquecimento.R` | L2b tolerance-free test: does the published interval concentrate more faunal turnover on the GF curve than random intervals of the same width? Gate 10 use and weight; stratum diagnostic of the pelagic z |
 | `92c_redefinicao.R` | L3 undetected published depth / bottom-temperature thresholds tested as new class boundaries with the fauna inside the study box |
 | `92d_afericao.R` | L4 in-situ vs GLORYS depth in the study boxes, published values moved to the GLORYS scale, L2 and L2b recomputed; variables in the literature missing from the model |
+| `92f_tabela_validacao.R` | Worksheet for checking each published threshold against the full text (DOIs in `entrada/limiares_referencias.csv`) |
 | `92e_figura_limiares.R` | L5 model vs published thresholds per variable and study, with threshold ids (key table in `saida/figura_limiares_tabela.csv`) |
 
 `94_comparacao_mapas.R` draws, in one common style, the original classification, the classification tested by the fauna, the new habitats and the united map, for the benthos and for the pelagic.

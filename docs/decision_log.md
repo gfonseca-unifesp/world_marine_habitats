@@ -282,6 +282,10 @@ Applied on 06/11/2026 (`92b`, `92c`, `92d`). L3: 8 candidates, all depth; split 
 
 Option C approved by the PI: level 2 with the curated data now (`93`); widening level 1 with the new pelagic groups goes with stage 4. The united pelagic map (`91b`) uses the Gate 9b rules on cell x month x depth. Design choices made in applying them: vertical zones (< 200, 200-1,000, >= 1,000 m) never merge, as depth bands do not in the benthos; merged pelagic habitats keep their lowest name so that numbers stay stable; minimum area counts cells in the best month x depth layer. Limitations: the cut is calibrated on only 9 equivalent pairs, all 25 fauna-distinct classes are epipelagic, and level-1 and level-2 groups overlap in part in the consensus.
 
+## 19d. PI decisions of 06/11/2026
+
+Gate 9 approved. The united pelagic map stays in the body of the article, with its limitations stated. Literature splits (L3) use the GLORYS scale wherever both ends of the published interval could be converted, because the map is cut on GLORYS depth: situation, enrichment and split value all come from that scale. Result: 7 candidates, 6 splits, 14 new classes, 179 base classes, two conflicts recorded (LP011; LP013 in one context, whose median omega2 of 0.10 suggests low power rather than equivalence, pending). Option B comes before deciding whether stage 4 enters this article; pelagic L3 waits for option B. The first extraction for option B showed that its groups are dominated by fishery and demersal or coastal surveys, so filters go to a new Gate before curation.
+
 ## 20. State on 16/10/2026 and next steps (snapshot recorded in the original log)
 
 - Done: Phases 0 to 7 of Guide v3 and Gates 1, 2 and 3. Numbered scripts in `scripts/` (00 to 74, 90 = report).
