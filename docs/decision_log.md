@@ -266,6 +266,22 @@ The curation pipeline was set to stop when more than 30% of records were lost by
 | 7 Acceptance | Omega² of the united map >= the best component (HB, EBU region) on the same units; all bands, groups and EBU regions represented |
 | 8 Layers | Benthos (static) and pelagic (dynamic) kept separate; the pelagic is united after level 2 (Gate 8, item 3) |
 
+## 19b. Gate 10 (30/10/2026), decided by the PI: items 1 to 7 accepted (published thresholds)
+
+1. Confirmation: enrichment is the main criterion (ratio >= 2 and p <= 0.05); the +-10% tolerance stays descriptive.
+2. Only troca_composicao, agrupamento and limite_distribuicao validate; other threshold types are reported only.
+3. Redefinition (L3): depth and bottom temperature in the benthos; the pelagic after its united map.
+4. New evidence grade "separada pela literatura" (separated by the literature), cross-hatched.
+5. Studies whose data may be in OBIS (dados_no_obis yes or partial) are support only until checked by hand.
+6. Weight 0.5 for limits equal to a sampling stratum, plus a diagnostic of our own z.
+7. Base v1 published with the article; contributions by pull request, curated by the PI.
+
+Applied on 06/11/2026 (`92b`, `92c`, `92d`). L3: 8 candidates, all depth; split value = midpoint of the published interval, inside the study box and level-III context; 8 splits by the literature (no context had enough fauna units on both sides), 17 new classes in the benthic map, and one conflict recorded (LP011, Hawaii, 750 m: 4 groups tested, none separated; class not split). L4: only depth has an in-situ value in our data; published values are moved to the GLORYS scale by the median GLORYS depth of events sampled near them, because marginal quantile mapping gave impossible conversions (the study boxes mix shelf and slope events).
+
+## 19c. Pelagic at level 2 and united pelagic map (30/10 and 06/11/2026)
+
+Option C approved by the PI: level 2 with the curated data now (`93`); widening level 1 with the new pelagic groups goes with stage 4. The united pelagic map (`91b`) uses the Gate 9b rules on cell x month x depth. Design choices made in applying them: vertical zones (< 200, 200-1,000, >= 1,000 m) never merge, as depth bands do not in the benthos; merged pelagic habitats keep their lowest name so that numbers stay stable; minimum area counts cells in the best month x depth layer. Limitations: the cut is calibrated on only 9 equivalent pairs, all 25 fauna-distinct classes are epipelagic, and level-1 and level-2 groups overlap in part in the consensus.
+
 ## 20. State on 16/10/2026 and next steps (snapshot recorded in the original log)
 
 - Done: Phases 0 to 7 of Guide v3 and Gates 1, 2 and 3. Numbered scripts in `scripts/` (00 to 74, 90 = report).
