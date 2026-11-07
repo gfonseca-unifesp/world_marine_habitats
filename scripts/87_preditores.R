@@ -18,7 +18,8 @@
 # Outputs: intermediario/etapa3_n1/<comp>_<grupo>.rds (list: meta + X + predictors), saida/etapa3_n1_unidades.csv (summary)
 suppressPackageStartupMessages({library(arrow); library(dplyr); library(terra); library(tidyr)})
 raiz <- Sys.getenv("WMH_ROOT", "C:/Users/model/OBIS_Tot"); source(file.path(raiz, "scripts/funcoes_grade.R"))
-dir_t <- file.path(raiz, "intermediario/etapa3_n1"); dir.create(dir_t, showWarnings = FALSE)
+B <- Sys.getenv("WMH_N1B") == "1"   # option B (Gate 11): only the pelagic part, on the groups of 21b, in intermediario/etapa3_n1b
+dir_t <- file.path(raiz, if (B) "intermediario/etapa3_n1b" else "intermediario/etapa3_n1"); dir.create(dir_t, showWarnings = FALSE)
 EV_MIN <- 10; Z_PADRAO <- c(0, 10, 25, 50, 100, 200, 300, 500, 1000, 1500, 2000, 3000, 4000, 5000)
 TRI <- list(T1 = 1:3, T2 = 4:6, T3 = 7:9, T4 = 10:12)
 g25 <- ease2_grade("25km")
@@ -42,6 +43,7 @@ incid <- function(d) {   # d: unidade, evento, taxon_unidade -> incidence matrix
 
 resumo <- list()
 # ---- benthos ----
+if (!B) {
 b <- open_dataset(file.path(raiz, "saida/tabela_certa_bentos_n1.parquet")) |> filter(year >= 1993, nivel_certeza %in% c("A", "B")) |>
   select(grupo, cell_id, event_id, taxon_unidade, bathymetry_m, bloco_espacial, ebu_grupo, pureza_grupo, ebu_regiao, pureza_regiao) |> collect() |>
   filter(!is.na(taxon_unidade), taxon_unidade != "")
@@ -66,9 +68,10 @@ for (g in sort(unique(b$grupo))) {
   cat(format(Sys.time()), "bentos", g, ":", sum(ok), "unidades\n")
 }
 rm(b); gc(verbose = FALSE)
+}
 
 # ---- pelagic ----
-p <- open_dataset(file.path(raiz, "saida/tabela_certa_pelagico_n1.parquet")) |> filter(year >= 1993, nivel_certeza %in% c("A", "B"), !is.na(month)) |>
+p <- open_dataset(file.path(raiz, sprintf("saida/tabela_certa_pelagico_n1%s.parquet", if (B) "b" else ""))) |> filter(year >= 1993, nivel_certeza %in% c("A", "B"), !is.na(month)) |>
   select(grupo, cell_id, event_id, taxon_unidade, month, depth_min_m, depth_max_m, bathymetry_m, bloco_espacial, emu, pureza_emu) |> collect() |>
   filter(!is.na(taxon_unidade), taxon_unidade != "", !is.na(emu)) |>
   mutate(tri = paste0("T", (month - 1) %/% 3 + 1), zreg = rowMeans(cbind(depth_min_m, depth_max_m), na.rm = TRUE))
@@ -101,4 +104,4 @@ z = un$z, t_z = NA_real_, s_z = NA_real_, sst = NA_real_, sss = NA_real_, mld = 
   resumo[[length(resumo) + 1]] <- data.frame(comp = "pelagico", grupo = g, unidades = sum(ok), sem_ambiente = sum(!ok), taxons = ncol(r$X))
   cat(format(Sys.time()), "pelagico", g, ":", sum(ok), "unidades\n")
 }
-res <- bind_rows(resumo); write.csv(res, file.path(raiz, "saida/etapa3_n1_unidades.csv"), row.names = FALSE); print(res)
+res <- bind_rows(resumo); write.csv(res, file.path(raiz, sprintf("saida/etapa3_n1%s_unidades.csv", if (B) "b" else "")), row.names = FALSE); print(res)

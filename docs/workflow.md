@@ -29,6 +29,7 @@ Scripts are numbered in run order. Every script reads and writes inside the work
 | `21_extrair_nivel1.R` | Extract all records of the level-1 focal taxa from the OBIS snapshot (no filtering yet) |
 | `22_perfil_nivel1.R` | Profile of the extraction: field completeness, dates, coordinate precision, flags, basisOfRecord, licences, dataset dominance |
 | `21b_extrair_nivel1_b.R` | Option B: extraction of the small pelagic fish and micronekton families, apart from the approved level 1 |
+| `24b_conjuntos_b.R` | Option B: dataset metadata and pelagic-gear evidence; 40, 50, 87 and 88 rerun with `WMH_N1B=1`; `60b_tabela_n1b.R` writes the table |
 | `23_taxa.R` | Taxon table from the WoRMS classification shipped with OBIS |
 | `24_conjuntos.R` | Dataset metadata, type, scope and standardised licence (OBIS API) |
 | `31_sondagem.R` | Scoping: purity, effort, testable classes and boundary pairs at 25, 50 and 100 km |
@@ -99,6 +100,7 @@ Scripts are numbered in run order. Every script reads and writes inside the work
 
 | Script | Purpose |
 |---|---|
+| `96_habitats_pelagico_b.R` | Option B: parallel version of the pelagic habitats compared with the approved one |
 | `93_pelagico_n2.R` | Level-2 pelagic units (cell × quarter × depth layer), Gradient Forest per ecological group, thresholds vs level 1, level-1 pelagic clusters tested with the level-2 fauna |
 
 ### Gate 10: published thresholds

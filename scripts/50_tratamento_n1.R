@@ -12,9 +12,10 @@
 suppressPackageStartupMessages({library(arrow); library(dplyr); library(terra)})
 raiz <- Sys.getenv("WMH_ROOT", "C:/Users/model/OBIS_Tot")
 source(file.path(raiz, "scripts/funcoes_grade.R"))
-unlink(file.path(raiz, "intermediario/n1_tratado"), recursive = TRUE)
-ds  <- open_dataset(file.path(raiz, "intermediario/n1_curado"))
-cj  <- read.csv(file.path(raiz, "intermediario/conjunto_tipo_escopo.csv"))
+B <- Sys.getenv("WMH_N1B") == "1"; SB <- if (B) "b" else ""   # option B (Gate 11): same treatment, separate paths
+unlink(file.path(raiz, sprintf("intermediario/n1%s_tratado", SB)), recursive = TRUE)
+ds  <- open_dataset(file.path(raiz, sprintf("intermediario/n1%s_curado", SB)))
+cj  <- read.csv(file.path(raiz, sprintf("intermediario/conjunto_tipo_escopo%s.csv", if (B) "_b" else "")))
 lista <- cj$dataset_id[cj$tipo == "d_lista_especies"]
 prof_padrao <- setNames(cj$prof_padrao_m, cj$dataset_id)
 g25 <- ease2_grade("25km")
@@ -64,7 +65,7 @@ for (i in seq_len(nrow(grupos))) {
       v <- emu_c[cel[j], blo[j]:bhi[j]]; paste(unique(v[!is.na(v)]), collapse = ",") }, "")
     multi[[g]] <- mm |> mutate(grupo = g)
   }
-  write_dataset(x |> mutate(grupo = g), file.path(raiz, "intermediario/n1_tratado"), partitioning = "grupo", format = "parquet")
+  write_dataset(x |> mutate(grupo = g), file.path(raiz, sprintf("intermediario/n1%s_tratado", SB)), partitioning = "grupo", format = "parquet")
   # effort (5.3)
   e <- x |> filter(!dataset_id %in% lista)
   chave <- if (comp == "pelagico") c("cell_25", "fatia", "emu") else c("cell_25", "fatia")
@@ -79,10 +80,10 @@ for (i in seq_len(nrow(grupos))) {
   cat(format(Sys.time()), "-", g, ":", nrow(x), "registros;", paste(resumo[[g]]$situacao_classe, resumo[[g]]$n, sep = "=", collapse = " "), "\n")
   rm(x, e); gc(verbose = FALSE)
 }
-write_parquet(bind_rows(multi), file.path(raiz, "saida/pelagico_multi_emu.parquet"))
-write_parquet(bind_rows(esf), file.path(raiz, "saida/esforco_nivel1.parquet"))
-write.csv(bind_rows(resumo), file.path(raiz, "saida/tratamento_n1_resumo.csv"), row.names = FALSE)
+write_parquet(bind_rows(multi), file.path(raiz, sprintf("saida/pelagico_multi_emu%s.parquet", SB)))
+write_parquet(bind_rows(esf), file.path(raiz, sprintf("saida/esforco_nivel1%s.parquet", SB)))
+write.csv(bind_rows(resumo), file.path(raiz, sprintf("saida/tratamento_n1%s_resumo.csv", SB)), row.names = FALSE)
 cg <- bind_rows(escopo) |> group_by(dataset_id) |> summarise(grupos = paste(sort(grupo), collapse = "; "), n_grupos = n())
 cg$titulo <- cj$titulo[match(cg$dataset_id, cj$dataset_id)]; cg$tipo <- cj$tipo[match(cg$dataset_id, cj$dataset_id)]
-write.csv(cg, file.path(raiz, "saida/conjunto_grupo.csv"), row.names = FALSE)
+write.csv(cg, file.path(raiz, sprintf("saida/conjunto_grupo%s.csv", SB)), row.names = FALSE)
 cat("conjuntos com registros retidos:", nrow(cg), "\n")

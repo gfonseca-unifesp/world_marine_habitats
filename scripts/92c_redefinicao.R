@@ -8,7 +8,8 @@
 #  per candidate and per level-III context inside the study box (depth band x HB, or depth band x protected feature, as in
 #    91_mapa_unido_bentos.R): fauna units shallower (colder) vs. deeper (warmer) than the value, pares_classes() per taxonomic
 #    group (omega2 >= 0.01 and power >= 0.8), consensus as in 91;
-#  decision: distinct -> split, evidence "distinta pela fauna"; equivalent (not distinct in >= 2/3 of >= 2 groups) -> no split,
+#  decision: distinct -> split, evidence "distinta pela fauna"; equivalent (not distinct in >= 2/3 of >= 2 groups and median omega2 < 0.01,
+#    Gate 11 item 6: not separating with a large effect is lack of power, not equivalence) -> no split,
 #    conflict with the literature recorded; untestable, single group without separating, or "depende do grupo" -> split, evidence
 #    "separada pela literatura" (Gate 9 principle: separate when any evidence separates); either side of the box with < 10 cells
 #    of that context -> no split (minimum area).
@@ -76,7 +77,7 @@ cons <- if (nrow(tes)) tes |> group_by(id, nivel3) |> summarise(grupos = n(), di
   omega2_med = median(omega2), .groups = "drop") else data.frame(id = character(), nivel3 = character(), grupos = integer(), distintos = integer(), grupos_nomes = character(), omega2_med = numeric())
 red <- jobs |> mutate(id = cands$id[k]) |> left_join(cons, by = c("id", "nivel3")) |> mutate(grupos = coalesce(grupos, 0L), distintos = coalesce(distintos, 0L),
     frac = ifelse(grupos > 0, distintos / grupos, NA),
-    consenso = case_when(grupos == 0 ~ "sem teste", grupos >= 2 & frac <= 1/3 ~ "equivalente", frac >= 2/3 & grupos >= 1 & distintos >= 1 ~ "distinto",
+    consenso = case_when(grupos == 0 ~ "sem teste", grupos >= 2 & frac <= 1/3 & omega2_med < 0.01 ~ "equivalente", frac >= 2/3 & grupos >= 1 & distintos >= 1 ~ "distinto",
       grupos == 1 & distintos == 0 ~ "fraco", TRUE ~ "depende do grupo"),
     decisao = case_when(pmin(celulas_raso, celulas_fundo) < AREA_MIN ~ "manter (área mínima)", consenso == "equivalente" ~ "manter (conflito com a literatura)", TRUE ~ "partir"),
     evidencia = case_when(decisao != "partir" ~ NA_character_, consenso == "distinto" ~ "distinta pela fauna", TRUE ~ "separada pela literatura")) |>

@@ -13,7 +13,7 @@
 # Outputs: intermediario/etapa3_n1/gf_<id>.rds; saida/etapa3_n1_gf_importancia.csv, _gf_limiares.csv, _gf_curvas.csv,
 #         _gdm.csv, _gdm_curvas.csv
 suppressPackageStartupMessages({library(parallel); library(dplyr)})
-raiz <- Sys.getenv("WMH_ROOT", "C:/Users/model/OBIS_Tot"); dir_t <- file.path(raiz, "intermediario/etapa3_n1"); SUF <- ""
+raiz <- Sys.getenv("WMH_ROOT", "C:/Users/model/OBIS_Tot"); B <- Sys.getenv("WMH_N1B") == "1"; dir_t <- file.path(raiz, if (B) "intermediario/etapa3_n1b" else "intermediario/etapa3_n1"); SUF <- if (B) "_b" else ""   # option B: new groups, outputs with suffix _b
 arqs <- list.files(dir_t, pattern = "^(bentos|pelagico)_.*\\.rds$", full.names = TRUE)
 
 roda <- function(a) {
@@ -22,6 +22,7 @@ roda <- function(a) {
   r <- readRDS(a); X <- r$F; E <- r$E; n <- nrow(X)
   if (r$comp == "bentos") E$sfundo_med <- NULL                                    # Gate 8, item 2
   E <- E[, !(grepl("^bac_", names(E)) & colSums(E) == 0), drop = FALSE]          # basin without units is dropped
+  E <- E[, vapply(E, function(x) sd(x) > 0, TRUE), drop = FALSE]                  # constant predictors (e.g. no ice in any unit) break GDM
   prev <- colSums(X > 0); X <- X[, prev >= 10 & prev <= 0.95 * n, drop = FALSE]
   out <- list(comp = r$comp, grupo = r$grupo, unidades = n, taxons = ncol(X))
   # ---- Gradient Forest ----

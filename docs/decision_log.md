@@ -286,6 +286,10 @@ Option C approved by the PI: level 2 with the curated data now (`93`); widening 
 
 Gate 9 approved. The united pelagic map stays in the body of the article, with its limitations stated. Literature splits (L3) use the GLORYS scale wherever both ends of the published interval could be converted, because the map is cut on GLORYS depth: situation, enrichment and split value all come from that scale. Result: 7 candidates, 6 splits, 14 new classes, 179 base classes, two conflicts recorded (LP011; LP013 in one context, whose median omega2 of 0.10 suggests low power rather than equivalence, pending). Option B comes before deciding whether stage 4 enters this article; pelagic L3 waits for option B. The first extraction for option B showed that its groups are dominated by fishery and demersal or coastal surveys, so filters go to a new Gate before curation.
 
+## 19e. Gate 11 (06/11/2026), decided by the PI: items 1 to 6 accepted (option B)
+
+New groups keep pelagic gear only; the Falkland fisheries survey and coastal squids are dropped; micronekton means mesopelagic fishes and oceanic squids; taxonomic unit = genus; a parallel version of the pelagic habitats replaces the approved one only if omega2 improves; in L3, equivalence also requires a median omega2 below 0.01. Results: 572,676 records retained, 695 fish and 120 micronekton units. The parallel version (28 habitats, 11 in stand-by) improved omega2 in 2 of 7 groups, so the approved pelagic habitats stay. LP013 is now split in its largest context: 7 splits, 17 new classes, 182 base classes.
+
 ## 20. State on 16/10/2026 and next steps (snapshot recorded in the original log)
 
 - Done: Phases 0 to 7 of Guide v3 and Gates 1, 2 and 3. Numbered scripts in `scripts/` (00 to 74, 90 = report).
