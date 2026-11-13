@@ -290,6 +290,16 @@ Gate 9 approved. The united pelagic map stays in the body of the article, with i
 
 New groups keep pelagic gear only; the Falkland fisheries survey and coastal squids are dropped; micronekton means mesopelagic fishes and oceanic squids; taxonomic unit = genus; a parallel version of the pelagic habitats replaces the approved one only if omega2 improves; in L3, equivalence also requires a median omega2 below 0.01. Results: 572,676 records retained, 695 fish and 120 micronekton units. The parallel version (28 habitats, 11 in stand-by) improved omega2 in 2 of 7 groups, so the approved pelagic habitats stay. LP013 is now split in its largest context: 7 splits, 17 new classes, 182 base classes.
 
+## 19f. PI decisions after Gate 11 (06/11/2026)
+
+1. The option-B fauna tests the approved pelagic habitats (`scripts/93b_hp_fauna_b.R`), and the united pelagic map is rebuilt with it (`scripts/91b_mapa_unido_pelagico.R`). A pair x ecological group tested both at level 2 and in option B counts once (shared OBIS records; the option-B row is kept). Result: 27 pelagic habitats, stand-by down from 13 to 11, no new merge; united pelagic map with 183 base classes (fusion error 3.7%), 26 distinct by fauna (all epipelagic), 113 merged by environment, 44 untested.
+2. Deep pelagic sources outside OBIS were searched; none beats OBIS globally, a few regional depth-stratified datasets are candidates (licences to check).
+3. Stage 4 (dynamic maps, validation, area of applicability) goes to the supplementary material, not to a second paper.
+4. L3 for the pelagic (`scripts/92g_redefinicao_pelagico.R`): no split candidate. z = 200 m gains support from the option-B fishes; z = 500 m is not supported by the new curves; the 1,000 m zone limit has no fauna support and stays as a conservative top-down limit.
+5. The Hawaii conflict (LP011) stays and is cited.
+
+Framing: the paper proposes an open, evidence-graded method, not a final map. The pelagic stays in the main text; the paper states the gaps and how others can contribute data and thresholds. At the PI's request, the level-1 group list is being revisited with a full OBIS inventory (`scripts/25_inventario_grupos.R`, `scripts/25b_inventario_candidatos.R`).
+
 ## 20. State on 16/10/2026 and next steps (snapshot recorded in the original log)
 
 - Done: Phases 0 to 7 of Guide v3 and Gates 1, 2 and 3. Numbered scripts in `scripts/` (00 to 74, 90 = report).

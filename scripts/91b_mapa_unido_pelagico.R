@@ -3,9 +3,10 @@
 #  1 candidates: each row = vertical zone (epipelagic z < 200 m, mesopelagic 200-1,000 m, bathypelagic >= 1,000 m; the z ~ 200 m
 #    threshold of levels 1 and 2 and of the literature) x pelagic habitat (HP of 89b, updated with the level-2 tests of
 #    93_pelagico_n2.R: merged HP keep the name of the lowest one) x EMU class at the nearest EMU depth;
-#  2 fauna tests: level-1 pelagic units (taxonomic groups; Euphausiacea and Hyperiidea out, Gate 8) and level-2 units (ecological
-#    groups) each get the candidate of their own environment (nearest kmP centroid -> HP; zone from z; EMU of the cell at z);
-#    pairs per group (pares_classes, omega2 >= 0.01 and power >= 0.8), consensus as in 91;
+#  2 fauna tests: level-1 pelagic units (taxonomic groups; Euphausiacea and Hyperiidea out, Gate 8), level-2 units (ecological groups)
+#    and option-B units (21b; PI decision of 06/11/2026) each get the candidate of their own environment (nearest kmP centroid -> HP,
+#    HP from 93b_hp_fauna_b.R; zone from z; EMU of the cell at z); pairs per group (pares_classes, omega2 >= 0.01 and power >= 0.8),
+#    consensus as in 91; a pair x ecological group tested at level 2 and in option B counts once (same OBIS records), keeping option B;
 #  3 single tree (complete linkage) on the false-merge-rate scale: equivalent = 0; distinct, "depende do grupo" or other zone =
 #    never (2); untested = ecdf of the GF distances of distinct pairs; base cut at the 25th percentile of equivalent pairs,
 #    tolerance levels at the 50th, 75th and 90th (nested);
@@ -33,11 +34,11 @@ transf <- function(E) { vs <- intersect(unique(curvas_p$preditor), names(E))   #
 mais_proximo <- function(T, C) { d <- sapply(seq_len(nrow(C)), function(k) colSums((t(T) - C[k, ])^2)); max.col(-d, ties.method = "first") }
 
 # ---------------- HP updated with level 2 ----------------
-fus <- read.csv(file.path(raiz, "saida/pelagico_n2_fusoes.csv"))
-nome_final <- tapply(fus$hp_n1, fus$final_n1n2, function(x) ordena(unique(x))[1])
-fus$hp <- unname(nome_final[as.character(fus$final_n1n2)])                       # merged HP keep the lowest name
+fus <- read.csv(file.path(raiz, "saida/pelagico_b_fusoes.csv"))
+nome_final <- tapply(fus$hp_n1, fus$final, function(x) ordena(unique(x))[1])
+fus$hp <- unname(nome_final[as.character(fus$final)])                       # merged HP keep the lowest name
 hp_de_antigo <- tapply(fus$hp, fus$hp_n1, first); hsP_antigo <- ordena(unique(fus$hp_n1))   # value order of habitats_novos_pelagico_mes_z.tif
-hp_standby <- tapply(fus$standby_n1n2, fus$hp, first)
+hp_standby <- tapply(fus$standby, fus$hp, first)
 cat("HP atualizados:", length(hp_standby), "(stand-by:", sum(hp_standby), ")\n")
 
 # ---------------- 1 candidates (rows = cell x month x depth) ----------------
@@ -61,6 +62,7 @@ pode <- function(a, b) cand$zona[match(a, cand$cand)] == cand$zona[match(b, cand
 mod <- readRDS(file.path(raiz, "intermediario/etapa3_n1/habitats_novos_modelo.rds")); CP <- mod$kmP$centers; rm(mod); gc(verbose = FALSE)
 cel_de <- function(id) { p <- do.call(rbind, strsplit(id, "_")); cellFromRowCol(g25, as.integer(p[, 2]), as.integer(p[, 3])) }
 arqs <- c(list.files(file.path(raiz, "intermediario/etapa3_n1"), pattern = "^pelagico_.*\\.rds$", full.names = TRUE),
+          list.files(file.path(raiz, "intermediario/etapa3_n1b"), pattern = "^pelagico_.*\\.rds$", full.names = TRUE),
           list.files(file.path(raiz, "intermediario/pelagico_n2"), pattern = "\\.rds$", full.names = TRUE))
 arqs <- arqs[!grepl(paste(SEM_SINAL, collapse = "|"), arqs)]
 prep <- lapply(arqs, function(a) { r <- readRDS(a); n2 <- grepl("pelagico_n2", a)
@@ -69,7 +71,7 @@ prep <- lapply(arqs, function(a) { r <- readRDS(a); n2 <- grepl("pelagico_n2", a
   cc <- paste(zona(r$E$z), hp, em, sep = "|"); cc[!cc %in% cand$cand] <- NA
   n <- table(cc); cl <- names(n)[n >= 5]; pr <- if (length(cl) >= 2) t(combn(sort(cl), 2)) else matrix(character(0), 0, 2)
   pr <- pr[pode(pr[, 1], pr[, 2]), , drop = FALSE]
-  list(arq = a, grupo = paste0(r$grupo, if (n2) " (n2)" else ""), cand = cc, hp = hp, nivel3 = paste(zona(r$E$z), hp, sep = "|"), emu = em, pares = pr) })
+  list(arq = a, grupo = paste0(r$grupo, if (n2) " (n2)" else if (grepl("etapa3_n1b", a)) " (B)" else ""), cand = cc, hp = hp, nivel3 = paste(zona(r$E$z), hp, sep = "|"), emu = em, pares = pr) })
 cat(format(Sys.time()), "pares a testar:", paste(sapply(prep, `[[`, "grupo"), sapply(prep, function(x) nrow(x$pares)), collapse = "; "), "\n")
 jobs <- bind_rows(lapply(seq_along(prep), function(k) { n <- nrow(prep[[k]]$pares); if (!n) return(NULL)
   data.frame(k = k, de = seq(1, n, by = 100)) |> mutate(ate = pmin(de + 99, n)) }))
@@ -83,6 +85,9 @@ testa <- function(j) {
 cl <- makeCluster(min(14, nrow(jobs))); clusterExport(cl, c("raiz", "prep"))
 pares <- bind_rows(parLapplyLB(cl, split(jobs, seq_len(nrow(jobs))), testa)); stopCluster(cl)
 pares <- pares |> filter(!is.na(separa)); cat(format(Sys.time()), "pares testados:", nrow(pares), "\n")
+sem_ac <- function(x) sub(" [(](n2|B)[)]$", "", chartr("áéíóúâêôãõç", "aeiouaeoaoc", x))
+pares <- pares |> mutate(fam = sem_ac(grupo), b_ = grepl("[(]B[)]$", grupo)) |> arrange(desc(b_)) |> distinct(classe_a, classe_b, fam, .keep_all = TRUE) |> select(-fam, -b_)
+cat("pares apos retirar repeticoes:", nrow(pares), "\n")
 consenso <- pares |> group_by(classe_a, classe_b) |> summarise(grupos = n(), distintos = sum(separa), .groups = "drop") |>
   mutate(frac = distintos / grupos, consenso = ifelse(grupos >= 2 & frac <= 1/3, "equivalente", ifelse(frac >= 2/3, "distinto", "depende do grupo")),
     fraco = grupos == 1 & distintos == 0)
