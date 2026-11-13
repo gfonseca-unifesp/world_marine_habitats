@@ -12,9 +12,9 @@ if (!length(dem)) dem <- unique(tc$family[tc$compartimento == "bentos" & tc$peix
 DEC_P <- c("Sergestidae", "Sergiidae", "Oplophoridae", "Acanthephyridae", "Pasiphaeidae", "Benthesicymidae", "Luciferidae", "Gnathophausiidae", "Lophogastridae")
 MICRO <- c("Proteobacteria", "Bacteroidetes", "Cyanobacteria", "Euryarchaeota", "Thaumarchaeota", "Verrucomicrobia", "Actinobacteria", "Planctomycetes", "Chloroflexi")
 cat("familias de peixes demersais:", length(dem), "\n")
-ds <- open_dataset(list.files(file.path(raiz, "bruto/occurrence"), full.names = TRUE), format = "parquet", unify_schemas = FALSE)
+# files are opened in chunks below
 t0 <- Sys.time()
-q <- ds |> filter(!dropped, is.na(absence) | !absence) |>
+consulta <- function(ds) ds |> filter(!dropped, is.na(absence) | !absence) |>
   mutate(phylum = interpreted$phylum, subphylum = interpreted$subphylum, class = interpreted$class, order = interpreted$order, suborder = interpreted$suborder, family = interpreted$family,
          year = interpreted$date_year, ds_ms = interpreted$date_start, lon = interpreted$decimalLongitude, lat = interpreted$decimalLatitude, ev = interpreted$eventID,
          z = coalesce(interpreted$maximumDepthInMeters, interpreted$depth, interpreted$minimumDepthInMeters)) |>
@@ -30,10 +30,19 @@ q <- ds |> filter(!dropped, is.na(absence) | !absence) |>
     phylum %in% c("Brachiopoda", "Nemertea") | class == "Sipuncula" | class == "Pycnogonida" ~ "B Brachiopoda, Nemertea, Sipuncula, Pycnogonida", class %in% c("Phaeophyceae", "Florideophyceae", "Ulvophyceae") ~ "B Macroalgas")) |>
   filter(!is.na(grupo), !(grupo == "B Amphipoda (sem Hyperiidea)" & suborder == "Hyperiidea" & !is.na(suborder))) |>
   mutate(zona = case_when(is.na(z) ~ "sem_z", z < 200 ~ "z0_200", z < 1000 ~ "z200_1000", TRUE ~ "z1000"), celx = floor(lon * 4), cely = floor(lat * 4), tri = floor((mes - 1) / 3) + 1,
-         chave = coalesce(ev, paste(dataset_id, interpreted$eventDate, lon, lat)))
-qc <- q |> select(grupo, dataset_id, zona, celx, cely, tri, chave)
-# one scan only (a second scan ran out of memory on 06/11): events counted per dataset, then summed (an event belongs to one dataset)
-a0 <- qc |> group_by(grupo, dataset_id, zona, celx, cely, tri) |> summarise(eventos = n_distinct(chave), registros = n(), .groups = "drop") |> collect()
+         chave = coalesce(ev, paste(dataset_id, interpreted$eventDate, lon, lat))) |>
+  group_by(grupo, dataset_id, zona, celx, cely, tri, chave) |> summarise(registros = n(), .groups = "drop")
+# a single scan of all files ran out of memory (06/11 and 13/11): the files are read in chunks, each chunk reduced to distinct
+# events x cell x quarter x zone and written to disk; events are then counted per dataset and summed (an event belongs to one dataset).
+tmp <- file.path(raiz, "intermediario/inventario_candidatos_eventos"); if (dir.exists(tmp)) unlink(tmp, recursive = TRUE); dir.create(tmp)
+arqs <- list.files(file.path(raiz, "bruto/occurrence"), full.names = TRUE); lotes <- split(arqs, ceiling(seq_along(arqs) / 150))
+for (k in seq_along(lotes)) { x <- consulta(open_dataset(lotes[[k]], format = "parquet", unify_schemas = FALSE)) |> collect()
+  if (nrow(x)) write_parquet(x, file.path(tmp, sprintf("lote_%03d.parquet", k))); rm(x); gc(verbose = FALSE)
+  if (k %% 10 == 0) cat(format(Sys.time()), "lote", k, "de", length(lotes), "\n") }
+cat(format(Sys.time()), "eventos gravados em", round(as.numeric(Sys.time() - t0, units = "mins"), 1), "min\n")
+dd <- open_dataset(tmp); gs <- dd |> distinct(grupo) |> collect() |> pull(grupo)
+a0 <- bind_rows(lapply(gs, function(g) dd |> filter(grupo == g) |> group_by(grupo, dataset_id, zona, celx, cely, tri) |>
+  summarise(eventos = n_distinct(chave), registros = sum(registros), .groups = "drop") |> collect()))
 cat(format(Sys.time()), "agregado:", nrow(a0), "linhas em", round(as.numeric(Sys.time() - t0, units = "mins"), 1), "min\n")
 write_parquet(a0, file.path(raiz, "intermediario/inventario_candidatos_celulas.parquet"))
 ag <- a0 |> group_by(grupo, zona, celx, cely, tri) |> summarise(eventos = sum(eventos), registros = sum(registros), .groups = "drop")
