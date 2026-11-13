@@ -12,10 +12,10 @@
 suppressPackageStartupMessages({library(arrow); library(dplyr); library(terra)})
 raiz <- Sys.getenv("WMH_ROOT", "C:/Users/model/OBIS_Tot")
 source(file.path(raiz, "scripts/funcoes_grade.R"))
-B <- Sys.getenv("WMH_N1B") == "1"; SB <- if (B) "b" else ""   # option B (Gate 11): same treatment, separate paths
+SB <- Sys.getenv("WMH_N1V", if (Sys.getenv("WMH_N1B") == "1") "b" else ""); B <- SB != ""   # option B (Gate 11) and test fauna c (Gate 12): same treatment, separate paths
 unlink(file.path(raiz, sprintf("intermediario/n1%s_tratado", SB)), recursive = TRUE)
 ds  <- open_dataset(file.path(raiz, sprintf("intermediario/n1%s_curado", SB)))
-cj  <- read.csv(file.path(raiz, sprintf("intermediario/conjunto_tipo_escopo%s.csv", if (B) "_b" else "")))
+cj  <- read.csv(file.path(raiz, sprintf("intermediario/conjunto_tipo_escopo%s.csv", if (B) paste0("_", SB) else "")))
 lista <- cj$dataset_id[cj$tipo == "d_lista_especies"]
 prof_padrao <- setNames(cj$prof_padrao_m, cj$dataset_id)
 g25 <- ease2_grade("25km")
@@ -28,9 +28,14 @@ banda_de <- function(z) { z <- pmin(pmax(z, 0), 5500); vapply(z, function(v) whi
 
 grupos <- ds |> distinct(grupo, compartimento) |> collect()
 multi <- list(); esf <- list(); resumo <- list(); escopo <- list()
-for (i in seq_len(nrow(grupos))) {
-  g <- grupos$grupo[i]; comp <- grupos$compartimento[i]
-  x <- ds |> filter(grupo == g) |> collect()
+# Gate 12: "peixes demersais" in 8 longitude sectors, as in 40_curadoria_n1.R (effort is per cell, and a cell lies in one sector)
+SETORES <- function(g) if (SB == "c" && g == "peixes demersais") 8L else 1L
+for (i in seq_len(nrow(grupos))) for (s in seq_len(SETORES(grupos$grupo[i]))) {
+  g <- grupos$grupo[i]; comp <- grupos$compartimento[i]; ns <- SETORES(g); lim <- seq(-180, 180, length.out = ns + 1); gs <- paste(g, s)
+  x <- ds |> filter(grupo == g)
+  l0 <- lim[s]; l1 <- lim[s + 1]   # scalars: arrow does not take lim[s + 1] inside filter
+  if (ns > 1) x <- if (s == 1) x |> filter(is.na(lon) | lon < l1) else if (s == ns) x |> filter(lon >= l0) else x |> filter(lon >= l0, lon < l1)
+  x <- x |> collect()
   # pelagic without month (level C): slice "sem_mes", used only in stage 1 (T4)
   x$fatia <- if (comp == "pelagico") ifelse(is.na(x$mes), "sem_mes", paste0("T", (x$mes - 1) %/% 3 + 1)) else "estatico"
   if (comp == "bentos") {
@@ -63,27 +68,27 @@ for (i in seq_len(nrow(grupos))) {
     mm <- x[x$situacao_classe == "multi_emu", c("record_id", "dataset_id", "cell_25", "depth_min", "depth_max", "aphiaid")]
     mm$emus <- vapply(which(x$situacao_classe == "multi_emu"), function(j) {
       v <- emu_c[cel[j], blo[j]:bhi[j]]; paste(unique(v[!is.na(v)]), collapse = ",") }, "")
-    multi[[g]] <- mm |> mutate(grupo = g)
+    multi[[gs]] <- mm |> mutate(grupo = g)
   }
-  write_dataset(x |> mutate(grupo = g), file.path(raiz, sprintf("intermediario/n1%s_tratado", SB)), partitioning = "grupo", format = "parquet")
+  write_dataset(x |> mutate(grupo = g), file.path(raiz, sprintf("intermediario/n1%s_tratado", SB)), partitioning = "grupo", format = "parquet", basename_template = sprintf("parte-%d-{i}.parquet", s))
   # effort (5.3)
   e <- x |> filter(!dataset_id %in% lista)
   chave <- if (comp == "pelagico") c("cell_25", "fatia", "emu") else c("cell_25", "fatia")
-  esf[[g]] <- e |> group_by(across(all_of(chave))) |>
+  esf[[gs]] <- e |> group_by(across(all_of(chave))) |>
     summarise(eventos = n_distinct(evento), registros = n(), conjuntos = n_distinct(dataset_id),
               ano_min = min(year), ano_max = max(year), anos_1993 = n_distinct(year[year >= 1993]),
               aparelhos = paste(head(names(sort(table(samplingProtocol[!is.na(samplingProtocol) & samplingProtocol != ""]),
                                                 decreasing = TRUE)), 3), collapse = " | "), .groups = "drop") |>
     mutate(grupo = g, compartimento = comp, emu = if (comp == "pelagico") emu else NA_real_)
-  escopo[[g]] <- x |> distinct(dataset_id) |> mutate(grupo = g)
-  resumo[[g]] <- x |> count(situacao_classe) |> mutate(grupo = g, compartimento = comp, pct = round(100 * n / sum(n), 1))
-  cat(format(Sys.time()), "-", g, ":", nrow(x), "registros;", paste(resumo[[g]]$situacao_classe, resumo[[g]]$n, sep = "=", collapse = " "), "\n")
+  escopo[[gs]] <- x |> distinct(dataset_id) |> mutate(grupo = g)
+  resumo[[gs]] <- x |> count(situacao_classe) |> mutate(grupo = g, compartimento = comp, pct = round(100 * n / sum(n), 1))
+  cat(format(Sys.time()), "-", g, ":", nrow(x), "registros;", paste(resumo[[gs]]$situacao_classe, resumo[[gs]]$n, sep = "=", collapse = " "), "\n")
   rm(x, e); gc(verbose = FALSE)
 }
 write_parquet(bind_rows(multi), file.path(raiz, sprintf("saida/pelagico_multi_emu%s.parquet", SB)))
 write_parquet(bind_rows(esf), file.path(raiz, sprintf("saida/esforco_nivel1%s.parquet", SB)))
-write.csv(bind_rows(resumo), file.path(raiz, sprintf("saida/tratamento_n1%s_resumo.csv", SB)), row.names = FALSE)
-cg <- bind_rows(escopo) |> group_by(dataset_id) |> summarise(grupos = paste(sort(grupo), collapse = "; "), n_grupos = n())
+write.csv(bind_rows(resumo) |> group_by(grupo, compartimento, situacao_classe) |> summarise(n = sum(n), .groups = "drop") |> group_by(grupo) |> mutate(pct = round(100 * n / sum(n), 1)) |> ungroup(), file.path(raiz, sprintf("saida/tratamento_n1%s_resumo.csv", SB)), row.names = FALSE)
+cg <- bind_rows(escopo) |> distinct(dataset_id, grupo) |> group_by(dataset_id) |> summarise(grupos = paste(sort(grupo), collapse = "; "), n_grupos = n())
 cg$titulo <- cj$titulo[match(cg$dataset_id, cj$dataset_id)]; cg$tipo <- cj$tipo[match(cg$dataset_id, cj$dataset_id)]
 write.csv(cg, file.path(raiz, sprintf("saida/conjunto_grupo%s.csv", SB)), row.names = FALSE)
 cat("conjuntos com registros retidos:", nrow(cg), "\n")

@@ -11,10 +11,12 @@
 suppressPackageStartupMessages({library(arrow); library(dplyr); library(terra)})
 raiz <- Sys.getenv("WMH_ROOT", "C:/Users/model/OBIS_Tot")
 source(file.path(raiz, "scripts/funcoes_grade.R"))
-B <- Sys.getenv("WMH_N1B") == "1"; SB <- if (B) "b" else ""
+# WMH_N1V=c (Gate 12, 13/11/2026): test-fauna groups of 21c, suffix c; filter 4.0 applies to their pelagic groups only.
+SB <- Sys.getenv("WMH_N1V", if (Sys.getenv("WMH_N1B") == "1") "b" else ""); B <- SB != ""
 ds  <- open_dataset(file.path(raiz, sprintf("intermediario/nivel1%s_extracao", SB)))
-cj  <- read.csv(file.path(raiz, sprintf("intermediario/conjunto_tipo_escopo%s.csv", if (B) "_b" else "")))
-grp <- if (B) data.frame(grupo = c("micronecton", "peixes pelagicos pequenos"), compartimento = "pelagico") else read.csv(file.path(raiz, "saida/nivel1_definicao_grupos.csv")) |> distinct(grupo, compartimento)
+cj  <- read.csv(file.path(raiz, sprintf("intermediario/conjunto_tipo_escopo%s.csv", if (B) paste0("_", SB) else "")))
+grp <- if (SB == "b") data.frame(grupo = c("micronecton", "peixes pelagicos pequenos"), compartimento = "pelagico") else
+  read.csv(file.path(raiz, sprintf("saida/nivel1%s_definicao_grupos.csv", SB))) |> distinct(grupo, compartimento)
 DIR_C <- sprintf("n1%s_curado", SB); DIR_Q <- sprintf("quarentena/n1%s", SB); DIR_A <- sprintf("ausencias/n1%s", SB)
 for (d in c(DIR_C, DIR_Q, DIR_A)) unlink(file.path(raiz, "intermediario", d), recursive = TRUE)
 
@@ -29,13 +31,14 @@ CONJ_CORROMPIDO <- c("d29d7aa5-08e0-4c1f-9b1c-3b46b3b93563")
 BASIS_OK       <- c("humanobservation", "materialsample", "preservedspecimen", "occurrence", "machineobservation",
                     "livingspecimen", "materialentity", "materialcitation")
 INC_MAX_M      <- EASE2_BASE_M / 4            # 1/4 of the side of the 25 km cell (D11)
-UNID_GENERO    <- c("Euphausiacea", "Chaetognatha", "micronecton", "peixes pelagicos pequenos")   # Gate 1, item 2; Gate 11, item 4
+UNID_GENERO    <- c("Euphausiacea", "Chaetognatha", "micronecton", "peixes pelagicos pequenos",   # Gate 1, item 2; Gate 11, item 4
+                    "peixes demersais", "Decapoda bentonicos", "Cyclopoida pelagicos", "Appendicularia", "Pteropoda")   # Gate 12 (as Gate 11, item 4)
 lic_ok <- with(cj, licenca %in% c("CC0", "CC-BY", "CC-BY-NC") |
   (licenca == "outra" & grepl("unrestricted|open.government|waived|public domain", tolower(licenca_texto))))
 CONJ_LIC_OK <- cj$dataset_id[lic_ok]
 
 # ---- single classification per AphiaID (the most frequent) ----
-tx <- read.csv(file.path(raiz, sprintf("saida/taxa%s.csv", if (B) "_b" else ""))) |> group_by(aphiaid) |> slice_max(registros, n = 1, with_ties = FALSE) |>
+tx <- read.csv(file.path(raiz, sprintf("saida/taxa%s.csv", if (B) paste0("_", SB) else ""))) |> group_by(aphiaid) |> slice_max(registros, n = 1, with_ties = FALSE) |>
   ungroup() |> select(aphiaid, taxonRank_u = taxonRank, phylum_u = phylum, class_u = class, order_u = order,
                       family_u = family, genus_u = genus, species_u = species)
 
@@ -154,16 +157,25 @@ FILTROS <- list("4.1 geografia" = "f41", "4.2 conjuntos" = "f42", "4.3 sinalizad
 
 # Gate 11 items 1 to 3 (option B only): pelagic gear, Falkland survey, coastal squids
 PEL <- "midwater|mid-water|pelagic trawl|plankton|ichthyoplankton|bongo|neuston|mocness|multinet|multi-net|manta|ikmt|isaacs|opening.?closing|oblique|calcofi|ring net|wp-?2|tucker|rmt|cobb|hydrobios"
-FUNDO <- "bottom trawl|demersal|groundfish|ground fish|otter trawl|beam trawl|benthic|visual|census|diver|scuba|video|rov\b|seine|gillnet|gill net|longline|long-line|hook|trap|kelp|reef fish|fishery|fisheries observer|landings"
-f40_gate11 <- function(x) { g <- tolower(ifelse(is.na(x$samplingProtocol), "", x$samplingProtocol)); i <- match(x$dataset_id, cj$dataset_id)
+# "rov\\b": until 13/11/2026 the pattern read "rov\b" (a backspace in an R string), so "ROV" alone never matched (option-B run of 06/11)
+FUNDO <- "bottom trawl|demersal|groundfish|ground fish|otter trawl|beam trawl|benthic|visual|census|diver|scuba|video|rov\\b|seine|gillnet|gill net|longline|long-line|hook|trap|kelp|reef fish|fishery|fisheries observer|landings"
+f40_gate11 <- function(x) { if (!x$grupo[1] %in% grp$grupo[grp$compartimento == "pelagico"]) return(rep(NA_character_, nrow(x)))   # Gate 12: benthic test groups keep all gear
+  g <- tolower(ifelse(is.na(x$samplingProtocol), "", x$samplingProtocol)); i <- match(x$dataset_id, cj$dataset_id)
   com <- g != ""; pel <- ifelse(com, grepl(PEL, g) & !grepl(FUNDO, g), cj$cj_pelagico[i] %in% TRUE & !cj$cj_fundo[i] %in% TRUE)
   ifelse(cj$malvinas[i] %in% TRUE, "levantamento_malvinas", ifelse(x$family %in% c("Loliginidae", "Sepiolidae"), "lula_costeira", ifelse(pel, NA, "aparelho_nao_pelagico"))) }
 if (B) FILTROS <- c(list("4.0 gate 11" = "f40"), FILTROS)
 
 cascata <- list()
-for (g in grp$grupo) {
-  comp <- grp$compartimento[grp$grupo == g]
-  x <- ds |> filter(grupo == g) |> collect() |> left_join(tx, by = "aphiaid")
+# Gate 12: "peixes demersais" has 58 million records and does not fit in memory at once; it is curated in 8 longitude sectors of 45
+# degrees. Every filter works record by record except 4.10 duplicates, whose key holds the coordinates, so sectors do not change it.
+SETORES <- function(g) if (SB == "c" && g == "peixes demersais") 8L else 1L
+for (g in grp$grupo) for (s in seq_len(SETORES(g))) {
+  comp <- grp$compartimento[grp$grupo == g]; ns <- SETORES(g); lim <- seq(-180, 180, length.out = ns + 1)
+  x <- ds |> filter(grupo == g)
+  l0 <- lim[s]; l1 <- lim[s + 1]   # scalars: arrow does not take lim[s + 1] inside filter
+  if (ns > 1) x <- if (s == 1) x |> filter(is.na(lon) | lon < l1) else if (s == ns) x |> filter(lon >= l0) else x |> filter(lon >= l0, lon < l1)
+  x <- x |> collect() |> left_join(tx, by = "aphiaid")
+  bt <- sprintf("parte-%d-{i}.parquet", s)
   x$decimais <- pmin(decimais(x$verbatimLon, x$lon), decimais(x$verbatimLat, x$lat))
   # dates that OBIS did not read: fill in year, start and end from the original eventDate
   x$data_relida <- FALSE
@@ -225,16 +237,19 @@ for (g in grp$grupo) {
   r$nivel_certeza <- ifelse(pos_inf & r$dia_conhecido, "A", ifelse(!is.na(r$mes), "B", "C"))
   r$evento <- ifelse(cheio(r$eventID), paste(r$dataset_id, r$eventID), paste(r$dataset_id, r$date_start, round(r$lon, 4), round(r$lat, 4)))
   r$compartimento <- comp
-  write_dataset(r |> mutate(grupo = g), file.path(raiz, "intermediario", DIR_C), partitioning = "grupo", format = "parquet")
+  write_dataset(r |> mutate(grupo = g), file.path(raiz, "intermediario", DIR_C), partitioning = "grupo", format = "parquet", basename_template = bt)
   q <- x[!is.na(motivo) & motivo != "ausencia", ]
-  if (nrow(q)) write_dataset(q |> mutate(grupo = g), file.path(raiz, "intermediario", DIR_Q), partitioning = "grupo", format = "parquet")
+  if (nrow(q)) write_dataset(q |> mutate(grupo = g), file.path(raiz, "intermediario", DIR_Q), partitioning = "grupo", format = "parquet", basename_template = bt)
   a <- x[motivo %in% "ausencia", ]
-  if (nrow(a)) write_dataset(a |> mutate(grupo = g), file.path(raiz, "intermediario", DIR_A), partitioning = "grupo", format = "parquet")
+  if (nrow(a)) write_dataset(a |> mutate(grupo = g), file.path(raiz, "intermediario", DIR_A), partitioning = "grupo", format = "parquet", basename_template = bt)
   stopifnot(nrow(r) + nrow(q) + nrow(a) == n)              # the cascade balances
   cat(format(Sys.time()), "-", g, ": extraidos", n, "| retidos", nrow(r), "| quarentena", nrow(q), "| ausencias", nrow(a), "\n")
   rm(x, r, q, a); gc(verbose = FALSE)
 }
 cas <- bind_rows(cascata)
+if (any(duplicated(cas[, c("grupo", "filtro")]))) cas <- cas |> group_by(grupo, filtro) |>   # sectors summed (Gate 12)
+  summarise(entram = sum(entram), saem = sum(saem), restam = sum(restam), motivos = paste(motivos[motivos != ""], collapse = " | "), .groups = "drop") |>
+  mutate(pct_saem = round(100 * saem / pmax(entram, 1), 2)) |> arrange(grupo, match(filtro, names(FILTROS))) |> select(grupo, filtro, entram, saem, restam, pct_saem, motivos)
 write.csv(cas, file.path(raiz, sprintf("saida/cascata_filtros_n1%s.csv", SB)), row.names = FALSE)
 alerta <- cas |> filter(pct_saem > 30, !filtro %in% c("4.3 sinalizadores"))
 if (nrow(alerta)) { cat("\n*** PARADA: filtros que tiraram mais de 30% dos registros restantes ***\n"); print(alerta) }
