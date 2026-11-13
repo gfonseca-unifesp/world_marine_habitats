@@ -63,14 +63,14 @@ mapa <- function(r, f, titulo) { ix <- match(f$ev, EV); v <- values(r)[, 1]; e <
   plot(e, col = COR, breaks = 0:6 + 0.5, legend = FALSE, axes = FALSE, box = FALSE, maxcell = ncell(r), main = titulo, cex.main = 1.1)
   plot(hatch(r, setNames(f$sb, f$valor)[as.character(seq_len(max(f$valor)))]), col = "#3a3a3a", breaks = c(0.5, 1.5), legend = FALSE, axes = FALSE, box = FALSE, add = TRUE, maxcell = ncell(r)) }
 png(file.path(raiz, "saida/box_lacunas_figura.png"), 2400, 2000, res = 170, bg = "white")
-layout(matrix(c(1, 1, 2, 3, 4, 4, 5, 5), 4, byrow = TRUE), heights = c(1000, 620, 820, 150))
+layout(matrix(c(1, 1, 1, 0, 2, 0, 3, 3, 3, 4, 4, 4), 4, byrow = TRUE), widths = c(1, 3, 1), heights = c(1000, 640, 820, 150))
 par(mar = c(0.3, 0.5, 2, 0.5))
 mapa(ub, fb, "(a) Bentos, nível base: grau de evidência de cada classe")
-mapa(up[["m07_z0"]], fp, "(b) Pelágico, julho, 0 m"); mapa(up[["m07_z500"]], fp, "(c) Pelágico, julho, 500 m")
+mapa(up[["m07_z500"]], fp, "(b) Pelágico, julho, 500 m (mesopelágico)")
 par(mar = c(4, 12, 2.5, 7)); grp <- c(paste("Bentos", ZB), paste("Pelágico", c("epi", "meso", "bati")))
 M <- sapply(seq_along(grp), function(i) { cp <- if (i <= 3) "bentos" else "pelagico"; z <- c(ZB, ZPel)[i]; x <- prop |> filter(comp == cp, faixa_zona == z); setNames(x$a, x$ev)[EV] }); M[is.na(M)] <- 0
 bp <- barplot(M, horiz = TRUE, col = COR, names.arg = grp, las = 1, xlim = c(0, 1), border = NA, xlab = "fração da área (bentos) ou do espaço-tempo (pelágico)", cex.names = 0.95,
-  main = "(d) Área por grau de evidência e área de aplicabilidade (AOA)", cex.main = 1.1)
+  main = "(c) Área por grau de evidência e área de aplicabilidade (AOA)", cex.main = 1.1)
 hb <- 0.5 * diff(bp[1:2]) / 1.2   # half bar height (barplot default space 0.2)
 for (j in seq_len(ncol(M))) { x1 <- cumsum(M[, j]); x0 <- x1 - M[, j]
   for (i in 5:6) if (M[i, j] > 0) rect(x0[i], bp[j] - hb, x1[i], bp[j] + hb, density = 18, angle = 45, col = "#3a3a3a", border = NA) }
