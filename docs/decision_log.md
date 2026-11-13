@@ -309,6 +309,15 @@ Framing: the paper proposes an open, evidence-graded method, not a final map. Th
 
 Technical note: terra objects cannot be exported to parallel workers (the external pointer becomes NULL); build the grid inside each worker.
 
+## 19h. GEBCO_2026 check (13/11/2026, approved by the PI)
+
+`scripts/15_gebco.R`. GEBCO_2026 (ice surface, 15 arc-second; doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa; public domain) projected to the 3.125 km EASE grid (median) and aggregated to 25 km (median of ocean subcells), compared with `prof_glorys` in the 583,533 cells of the united benthic map.
+- GLORYS is systematically shallower: median -206 m (-5.7%); 0-200 m -3 m, 200-2,000 m -77 m, > 2,000 m -232 m; Spearman 0.993. GLORYS depth is capped at 5,275 m: 74,501 cells (12.7%) are deeper in GEBCO, 5,107 below 6,000 m (hadal invisible).
+- Depth band with GEBCO instead of GLORYS: 10,758 cells (1.8%) change band, mostly on the slope (15.1%: 6,202 to > 2,000 m, 2,238 to the shelf); shelf 3.7%, deep 0.1%.
+- Item 4.9 closed: OBIS sampling depth matches GEBCO at the point (median 0 m; 67% within 25%; 1.2% below the seafloor); against the GLORYS cell 67% differ by more than 25%, so the offset is within-cell relief, not data error.
+- L4: in the study boxes, in situ - GEBCO is between -23 and +0.3 m; the 92d offsets are almost entirely GEBCO - GLORYS.
+- Approved maps keep the GLORYS depth (consistent with the predictors); the offset is stated. Using GEBCO for the depth-band cut is left for the next map version (open decision).
+
 ## 20. State on 16/10/2026 and next steps (snapshot recorded in the original log)
 
 - Done: Phases 0 to 7 of Guide v3 and Gates 1, 2 and 3. Numbered scripts in `scripts/` (00 to 74, 90 = report).
